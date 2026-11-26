@@ -1,0 +1,135 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Edward Research Labs — HQ (protótipo)</title>
+<style>html,body{margin:0;background:#9fc0d8;overflow:hidden;font-family:system-ui,sans-serif}canvas{display:block}
+#hud{position:fixed;top:10px;left:10px;z-index:5;display:flex;gap:8px;flex-wrap:wrap}
+#hud button{background:#12283bd9;color:#fff;border:0;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer}
+#hud button:hover{background:#1d3d58}
+#tag{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:#12283bd9;color:#fff;padding:7px 16px;border-radius:8px;font-size:14px;z-index:5}
+#hint{position:fixed;top:10px;right:10px;color:#12283b;background:#ffffffb0;padding:6px 10px;border-radius:8px;font-size:12px;z-index:5}</style>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<div id="hud"><button id="bOut">Vista do campus</button><button id="bIn">Dentro da HQ</button></div>
+<div id="hint">Arraste para girar · pince/role para zoom · toque num prédio</div>
+<div id="tag">Edward Research Labs — sede (protótipo de direção visual)</div>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const Q=new URLSearchParams(location.search);
+const ren=new THREE.WebGLRenderer({antialias:true});ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.shadowMap.enabled=true;document.body.appendChild(ren.domElement);
+const sc=new THREE.Scene();sc.background=new THREE.Color('#9fc0d8');sc.fog=new THREE.Fog('#9fc0d8',60,160);
+const cam=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.1,400);
+const ctl=new OrbitControls(cam,ren.domElement);ctl.enableDamping=true;ctl.maxPolarAngle=Math.PI*.495;
+const sun=new THREE.DirectionalLight('#fff4e0',2.4);sun.position.set(30,45,18);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-60;sun.shadow.camera.right=60;sun.shadow.camera.top=60;sun.shadow.camera.bottom=-60;sc.add(sun);
+sc.add(new THREE.HemisphereLight('#cfe4f7','#7c8a6a',.85));
+const M=(c,r=.85,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+const GLASS=new THREE.MeshPhysicalMaterial({color:'#bcd8e6',roughness:.06,metalness:.1,transparent:true,opacity:.22});
+const WOOD=M('#9a6b46',.7),WOODD=M('#7d5433',.75),STONE=M('#d9d4c9',.95),WALL=M('#ece9e4',.9),DARK=M('#2c3a44',.6,.2);
+function box(w,h,d,mat,x=0,y=0,z=0,ry=0){const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);b.position.set(x,y,z);b.rotation.y=ry;b.castShadow=b.receiveShadow=true;sc.add(b);return b}
+function cyl(rt,rb,h,mat,x=0,y=0,z=0){const c=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,20),mat);c.position.set(x,y,z);c.castShadow=c.receiveShadow=true;sc.add(c);return c}
+function label(txt,w=5.2){const cv=document.createElement('canvas');cv.width=512;cv.height=96;const g=cv.getContext('2d');g.fillStyle='#12283b';g.globalAlpha=.86;g.fillRect(0,0,512,96);g.globalAlpha=1;g.fillStyle='#fff';let fs=44;g.font='bold '+fs+'px system-ui';while(g.measureText(txt).width>470&&fs>18){fs-=2;g.font='bold '+fs+'px system-ui'}g.textAlign='center';g.textBaseline='middle';g.fillText(txt,256,52);const t=new THREE.CanvasTexture(cv);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true}));s.scale.set(w,w*96/512,1);return s}
+// ---------- CAMPUS ----------
+const ground=box(220,1,220,M('#8aa06b',1),0,-.5,0); // gramado
+const plaza=box(46,.14,34,STONE,0,.02,0);
+// caminhos
+box(6,.13,26,STONE,0,.03,-30);box(30,.13,5,STONE,-24,.03,-8);box(30,.13,5,STONE,24,.03,-8);box(5,.13,22,STONE,-15,.03,14);box(5,.13,22,STONE,15,.03,14);
+function tree(x,z,s=1){cyl(.09*s,.14*s,1.2*s,WOODD,x,.6*s,z);const f=new THREE.Mesh(new THREE.IcosahedronGeometry(.95*s,0),M('#4d7a3a',.95));f.position.set(x,1.9*s,z);f.castShadow=true;sc.add(f)}
+[[-28,-20],[28,-20],[-30,8],[30,8],[-20,22],[20,22],[-8,-26],[8,-26],[-34,-4],[34,-4]].forEach(p=>tree(p[0],p[1],.9+Math.random()*.5));
+function lamp(x,z){cyl(.05,.07,2.6,DARK,x,1.3,z);const l=new THREE.Mesh(new THREE.SphereGeometry(.17,10,10),new THREE.MeshStandardMaterial({color:'#ffedb0',emissive:'#ffdf80',emissiveIntensity:1.4}));l.position.set(x,2.7,z);sc.add(l)}
+[[-21,-15],[21,-15],[-21,15],[21,15],[0,-19],[-24,-5],[24,-5]].forEach(p=>lamp(p[0],p[1]));
+// ---------- PRÉDIO CENTRAL (HQ) ----------
+const HQ=new THREE.Group();sc.add(HQ);
+function hbox(w,h,d,mat,x=0,y=0,z=0,ry=0){const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);b.position.set(x,y,z);b.rotation.y=ry;b.castShadow=b.receiveShadow=true;HQ.add(b);return b}
+const FW=26,FD=16,HT=4.6;
+hbox(FW,.3,FD,STONE,0,.15,0);                       // laje
+// fachada de vidro (frontal) e caixilhos madeira
+hbox(FW,HT,.18,GLASS,0,HT/2+.3,FD/2);
+for(let i=0;i<=8;i++)hbox(.22,HT,.24,WOOD,-FW/2+i*(FW/8),HT/2+.3,FD/2);
+hbox(FW,HT,.2,WALL,0,HT/2+.3,-FD/2);                // fundos
+hbox(.2,HT,FD,WALL,-FW/2,HT/2+.3,0);hbox(.2,HT,FD,WALL,FW/2,HT/2+.3,0);
+// ripas de madeira nas laterais (faixas)
+for(let i=0;i<9;i++){hbox(.1,HT*.86,.5,WOOD,-FW/2-.02,HT/2+.3,-FD/2+1+i*1.7);hbox(.1,HT*.86,.5,WOOD,FW/2+.02,HT/2+.3,-FD/2+1+i*1.7)}
+const ceil=hbox(FW+.7,.34,FD+.7,WALL,0,HT+.45,0);   // teto/laje cobertura
+const beiral=hbox(FW+1.6,.16,FD+1.6,WOODD,0,HT+.66,0);         // beiral madeira
+const tetoInt=new THREE.Mesh(new THREE.BoxGeometry(FW-.3,.05,FD-.3),new THREE.MeshBasicMaterial({color:'#efece4'}));tetoInt.position.set(0,HT+.26,0);HQ.add(tetoInt); // forro interno
+// sign
+const sgn=label('EDWARD RESEARCH LABS',10);sgn.position.set(0,HT+1.5,FD/2+.4);HQ.add(sgn);
+// ---------- INTERIOR DA HQ ----------
+const INT=new THREE.Group();HQ.add(INT);
+function ibox(w,h,d,mat,x=0,y=0,z=0,ry=0){const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);b.position.set(x,y,z);b.rotation.y=ry;b.castShadow=b.receiveShadow=true;INT.add(b);return b}
+// piso interno madeira clara
+ibox(FW-.4,.06,FD-.4,M('#c8a67e',.8),0,.33,0);
+// sala de vidro (reunião) canto esquerdo
+const GR=new THREE.Group();INT.add(GR);
+function gbox(w,h,d,mat,x=0,y=0,z=0){const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);b.position.set(x,y,z);b.castShadow=true;GR.add(b);return b}
+const GX=-8,GZ=-2;
+gbox(9,3.1,.12,GLASS,GX,1.9,GZ+3);gbox(.12,3.1,6,GLASS,GX+4.5,1.9,GZ);
+[[-4.5,3],[4.5,3],[4.5,-3],[-4.5,-3]].forEach(p=>gbox(.16,3.1,.16,WOOD,GX+p[0],1.9,GZ+p[1]));
+gbox(9.2,.1,.16,WOODD,GX,3.5,GZ+3);gbox(.16,.1,6.2,WOODD,GX+4.5,3.5,GZ);
+// mesa de reunião + cadeiras
+gbox(4.6,.14,1.7,WOODD,GX,1.05,GZ);gbox(.5,.95,1.2,DARK,GX-1.6,.55,GZ);gbox(.5,.95,1.2,DARK,GX+1.6,.55,GZ);
+for(let i=0;i<3;i++){gbox(.55,.5,.55,M('#41505c',.7),GX-1.5+i*1.5,.62,GZ-1.45);gbox(.55,.5,.55,M('#41505c',.7),GX-1.5+i*1.5,.62,GZ+1.45)}
+// estações de trabalho (2 fileiras x 3) com monitores
+function desk(x,z,ry=0){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=ry;INT.add(g);
+ const t=new THREE.Mesh(new THREE.BoxGeometry(2.1,.1,.9),WOOD);t.position.y=.98;t.castShadow=true;g.add(t);
+ const l1=new THREE.Mesh(new THREE.BoxGeometry(.08,.95,.8),DARK);l1.position.set(-.95,.5,0);g.add(l1);
+ const l2=l1.clone();l2.position.x=.95;g.add(l2);
+ const mn=new THREE.Mesh(new THREE.BoxGeometry(.62,.4,.05),DARK);mn.position.set(0,1.42,-.18);g.add(mn);
+ const sc2=new THREE.Mesh(new THREE.PlaneGeometry(.56,.34),new THREE.MeshStandardMaterial({color:'#0d1b26',emissive:'#2e6c8f',emissiveIntensity:.9}));sc2.position.set(0,1.42,-.149);g.add(sc2);
+ const ch=new THREE.Mesh(new THREE.BoxGeometry(.5,.5,.5),M('#33424e',.7));ch.position.set(0,.62,.85);ch.castShadow=true;g.add(ch)}
+for(let i=0;i<3;i++){desk(2.2+i*3.2,-4.4,0);desk(2.2+i*3.2,-.4,Math.PI)}
+// lounge canto direito fundo
+function sofa(x,z,ry=0){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=ry;INT.add(g);const c=M('#5b7186',.85);
+ const base=new THREE.Mesh(new THREE.BoxGeometry(2.4,.5,.95),c);base.position.y=.58;base.castShadow=true;g.add(base);
+ const bk=new THREE.Mesh(new THREE.BoxGeometry(2.4,.55,.24),c);bk.position.set(0,1,-.36);g.add(bk)}
+sofa(9.4,-6.2,0);sofa(11.6,-4.2,Math.PI/2);
+ibox(1.3,.4,.8,WOODD,9.8,.55,-4.6); // mesinha
+// parede de ripas + painel dashboard no fundo
+for(let i=0;i<24;i++)ibox(.34,3.1,.07,i%2?WOOD:WOODD,-FW/2+1.2+i*.62,1.9,-FD/2+.32);
+const dash=document.createElement('canvas');dash.width=1024;dash.height=512;{const g=dash.getContext('2d');
+ g.fillStyle='#0d1b26';g.fillRect(0,0,1024,512);g.fillStyle='#fff';g.font='bold 40px system-ui';g.fillText('Edward Research Labs',40,62);
+ g.font='24px system-ui';g.fillStyle='#7fd0ff';g.fillText('painel da semana (dados fictícios)',40,100);
+ const bars=[.5,.8,.35,.9,.65,.75,.55];bars.forEach((v,i)=>{g.fillStyle=['#4da3d4','#6fc26f','#e0b34e','#d4654d','#4da3d4','#6fc26f','#e0b34e'][i];g.fillRect(60+i*80,430-v*300,48,v*300)});
+ g.strokeStyle='#3a5a70';g.strokeRect(40,120,640,330);
+ g.fillStyle='#fff';g.font='bold 26px system-ui';['Dev: 12 entregas','Fin: R$ 0 extra','ML: roteador 0/92','DS: 5 relatórios'].forEach((t,i)=>g.fillText(t,715,170+i*66));}
+const dtex=new THREE.CanvasTexture(dash);
+const panel=new THREE.Mesh(new THREE.PlaneGeometry(8.4,4.2*.5*2),new THREE.MeshStandardMaterial({map:dtex,emissive:'#ffffff',emissiveMap:dtex,emissiveIntensity:.55}));panel.position.set(2,2.3,-FD/2+.45);INT.add(panel);
+// faixas de luz no teto + pendentes
+for(let i=0;i<4;i++){const s=new THREE.Mesh(new THREE.BoxGeometry(6,.05,.3),new THREE.MeshStandardMaterial({color:'#fff',emissive:'#fff8e6',emissiveIntensity:1.6}));s.position.set(-9+i*6.5,HT+.05,0);INT.add(s)}
+for(let i=0;i<3;i++){const p=cyl(.02,.02,.7,DARK,-8+i*2,HT-.05,-2);const l=new THREE.Mesh(new THREE.SphereGeometry(.14,10,10),new THREE.MeshStandardMaterial({color:'#ffedb0',emissive:'#ffdf80',emissiveIntensity:1.8}));l.position.set(-8+i*2,HT-.45,-2);INT.add(l)}
+// plantas internas
+[[-12,5.5],[12,5.5],[-12,-6.5]].forEach(p=>{cyl(.22,.3,.5,M('#a8a29a',.9),p[0],.6,p[1]);const f=new THREE.Mesh(new THREE.IcosahedronGeometry(.5,0),M('#4d7a3a',.95));f.position.set(p[0],1.3,p[1]);INT.add(f)});
+// ---------- 5 ESCRITÓRIOS TEMÁTICOS ----------
+const teams=[
+ ['Desenvolvimento','#4da3d4',-30,-14,.35],
+ ['Financeiro','#6fc26f',30,-14,-.35],
+ ['Research','#e0b34e',-27,16,.8],
+ ['Machine Learning','#b285d6',27,16,-.8],
+ ['Ciência de Dados','#d4654d',0,34,0]];
+const clickables=[];
+teams.forEach(([nome,cor,x,z,ry])=>{
+ const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=ry;sc.add(g);
+ const base=new THREE.Mesh(new THREE.BoxGeometry(12,.3,9),STONE);base.position.y=.15;base.receiveShadow=true;g.add(base);
+ const corM=M(cor,.8);
+ const corpo=new THREE.Mesh(new THREE.BoxGeometry(10,3.6,7),WALL);corpo.position.y=2.1;corpo.castShadow=corpo.receiveShadow=true;g.add(corpo);
+ const faixa=new THREE.Mesh(new THREE.BoxGeometry(10.2,.9,7.2),corM);faixa.position.y=3.3;faixa.castShadow=true;g.add(faixa);
+ const vidro=new THREE.Mesh(new THREE.BoxGeometry(9,1.7,.16),GLASS);vidro.position.set(0,1.9,3.55);g.add(vidro);
+ const porta=new THREE.Mesh(new THREE.BoxGeometry(1.4,2.2,.12),WOODD);porta.position.set(0,1.4,3.6);g.add(porta);
+ const teto=new THREE.Mesh(new THREE.BoxGeometry(10.6,.24,7.6),WOODD);teto.position.y=4.05;teto.castShadow=true;g.add(teto);
+ for(let i=0;i<5;i++){const r=new THREE.Mesh(new THREE.BoxGeometry(.1,2.9,.4),WOOD);r.position.set(-5.05,2,-2.4+i*1.2);g.add(r)}
+ const lb=label(nome,5.6);lb.position.set(0,5.2,0);g.add(lb);
+ corpo.userData.team=nome;faixa.userData.team=nome;clickables.push(corpo,faixa);
+});
+// ---------- CÂMERAS ----------
+const tag=document.getElementById('tag');
+function viewOut(){ceil.visible=true;beiral.visible=true;cam.position.set(-26,17,38);ctl.target.set(0,2.5,0);tag.textContent='Edward Research Labs — campus: HQ central + escritório de cada time'}
+function viewIn(){ceil.visible=false;beiral.visible=false;cam.position.set(10.6,2.1,6.4);ctl.target.set(-5.5,1.5,-4);tag.textContent='Dentro da HQ: sala de vidro, estações, lounge e painel dos times'}
+document.getElementById('bOut').onclick=viewOut;document.getElementById('bIn').onclick=viewIn;
+if(Q.get('view')==='in')viewIn();else viewOut();
+if(Q.get('cam')){const p=Q.get('cam').split(',').map(Number);cam.position.set(p[0],p[1],p[2])}
+if(Q.get('look')){const p=Q.get('look').split(',').map(Number);ctl.target.set(p[0],p[1],p[2])}
+// clique nos prédios
+const ray=new THREE.Raycaster(),ptr=new THREE.Vector2();
+addEventListener('pointerdown',e=>{ptr.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ptr,cam);const h=ray.intersectObjects(clickables);if(h.length)tag.textContent='Escritório temático: '+h[0].object.userData.team});
+addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight)});
+ren.setAnimationLoop(()=>{ctl.update();ren.render(sc,cam)});
+</script></body></html>
