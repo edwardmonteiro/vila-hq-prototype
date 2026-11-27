@@ -176,7 +176,7 @@ const walkers=[];
 function addWalker(pack,nome,wp0,spd){const wps=[[19,13],[19,-13],[-19,-13],[-19,13]];
  const c=spawn(pack,'Walking_A',wps[wp0][0],wps[wp0][1],0,nome);
  walkers.push({c,idx:(wp0+1)%4,wps,spd,ph:Math.random()*7})}
-Promise.all([new Promise(r=>new GLTFLoader().load('Knight.glb',r)),new Promise(r=>new GLTFLoader().load('Mage.glb',r))]).then(([gk,gm])=>{
+Promise.all([new Promise(r=>new GLTFLoader().load('7-Knight.glb',r)),new Promise(r=>new GLTFLoader().load('6-Mage.glb',r))]).then(([gk,gm])=>{
  const K=prepPack(gk),M2=prepPack(gm);
  addWalker(K,'Matt',0,1.35);addWalker(M2,'Clara',1,1.25);addWalker(K,'Elias',2,1.45);addWalker(M2,'Nina',3,1.3);
  spawn(M2,'Sit_Chair_Idle',2.2,-3.55,Math.PI,'Ravi');
