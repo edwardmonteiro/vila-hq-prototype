@@ -91,9 +91,9 @@ const INT=new THREE.Group();HQ.add(INT);
 function ibox(w,h,d,mat,x=0,y=0,z=0,ry=0){const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);b.position.set(x,y,z);b.rotation.y=ry;b.castShadow=b.receiveShadow=true;INT.add(b);return b}
 // piso interno madeira clara
 ibox(FW-.4,.06,FD-.4,TM(concCv('#b9b4aa'),.4,4,4),0,.33,0);
-const mirror=new Reflector(new THREE.PlaneGeometry(FW-.4,FD-.4),{clipBias:.003,textureWidth:1024,textureHeight:1024,color:'#7c8188'});
+const mirror=new Reflector(new THREE.PlaneGeometry(FW-.4,FD-.4),{clipBias:.003,textureWidth:1024,textureHeight:1024,color:'#5f646b'});
 mirror.rotation.x=-Math.PI/2;mirror.position.set(0,.365,0);INT.add(mirror);
-const veil=new THREE.Mesh(new THREE.PlaneGeometry(FW-.4,FD-.4),new THREE.MeshStandardMaterial({map:T(concCv('#cfccc4'),4,4),transparent:true,opacity:.74,roughness:.35,depthWrite:false}));
+const veil=new THREE.Mesh(new THREE.PlaneGeometry(FW-.4,FD-.4),new THREE.MeshStandardMaterial({map:T(concCv('#cfccc4'),4,4),transparent:true,opacity:.88,roughness:.35,depthWrite:false}));
 veil.rotation.x=-Math.PI/2;veil.position.set(0,.37,0);INT.add(veil);
 // sala de vidro (reunião) canto esquerdo
 const GR=new THREE.Group();INT.add(GR);
